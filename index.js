@@ -1,12 +1,14 @@
 require('dotenv').config();
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const OpenAI = require("openai");
+const OpenAI = require('openai'); // Новый импорт
 
+// Проверяем наличие API-ключа
 if (!process.env.OPENAI_API_KEY) {
     console.error("Ошибка: API-ключ OpenAI не найден. Проверьте файл .env.");
     process.exit(1);
 }
 
+// Создаём экземпляр OpenAI
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
@@ -49,4 +51,3 @@ client.on('message', async msg => {
 });
 
 client.initialize();
-
