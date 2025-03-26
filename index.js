@@ -1,15 +1,15 @@
 require('dotenv').config();
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const { Configuration, OpenAIApi } = require('openai');
+const OpenAI = require("openai");
 
 if (!process.env.OPENAI_API_KEY) {
     console.error("Ошибка: API-ключ OpenAI не найден. Проверьте файл .env.");
     process.exit(1);
 }
 
-const openai = new OpenAIApi(new Configuration({
+const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
-}));
+});
 
 const client = new Client({
     authStrategy: new LocalAuth()
@@ -31,7 +31,7 @@ client.on('message', async msg => {
     } else {
         // Ограничиваем ответы только стоматологическими темами
         try {
-            const response = await openai.createChatCompletion({
+            const response = await openai.chat.completions.create({
                 model: "gpt-3.5-turbo",
                 messages: [
                     { role: "system", content: "Ты - бот стоматологической клиники. Отвечай только на вопросы по стоматологии." },
@@ -39,7 +39,7 @@ client.on('message', async msg => {
                 ],
             });
 
-            const reply = response.data.choices[0].message.content;
+            const reply = response.choices[0].message.content;
             client.sendMessage(chatId, reply);
         } catch (error) {
             console.error("Ошибка запроса к OpenAI:", error);
@@ -49,3 +49,4 @@ client.on('message', async msg => {
 });
 
 client.initialize();
+
