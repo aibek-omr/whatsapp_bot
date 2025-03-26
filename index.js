@@ -1,10 +1,8 @@
 require('dotenv').config();
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const { Configuration, OpenAIApi } = require('openai');
+const OpenAI = require('openai');
 
-const openai = new OpenAIApi(new Configuration({
-    apiKey: process.env.OPENAI_API_KEY
-}));
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const client = new Client({
     authStrategy: new LocalAuth()
@@ -14,7 +12,6 @@ client.on('message', async msg => {
     const chatId = msg.from;
     const text = msg.body.toLowerCase();
 
-    // Проверяем, связано ли сообщение со стоматологией
     if (text.includes("записаться") || text.includes("прием") || text.includes("стоматолог")) {
         client.sendMessage(chatId, "Ок, я вас записал! 😊");
     } else if (text.includes("адрес")) {
@@ -24,14 +21,13 @@ client.on('message', async msg => {
     } else if (text.includes("цены") || text.includes("прайс")) {
         client.sendMessage(chatId, "Тестовые цены:\n- Консультация: 1000₽\n- Пломбирование: 3000₽\n- Удаление зуба: 5000₽");
     } else {
-        // Отправляем запрос в ChatGPT
         try {
-            const response = await openai.createChatCompletion({
+            const response = await openai.chat.completions.create({
                 model: "gpt-3.5-turbo",
                 messages: [{ role: "user", content: text }],
             });
-
-            const reply = response.data.choices[0].message.content;
+            
+            const reply = response.choices[0].message.content;
             client.sendMessage(chatId, reply);
         } catch (error) {
             console.error(error);
