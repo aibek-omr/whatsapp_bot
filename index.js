@@ -1,14 +1,22 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const axios = require('axios');
+require('dotenv').config();
+const { OpenAI } = require("openai");
+const { Client, LocalAuth } = require("whatsapp-web.js");
+
+// Инициализация Together AI
+const openai = new OpenAI({
+    apiKey: process.env.TOGETHER_AI_API_KEY, // Убедись, что ключ указан в .env
+    baseURL: "https://api.together.xyz/v1"
+});
 
 const client = new Client({
     authStrategy: new LocalAuth()
 });
 
-client.on('message', async msg => {
+client.on("message", async (msg) => {
     const chatId = msg.from;
     const text = msg.body.toLowerCase();
 
+    // Обработка ключевых слов по стоматологии
     if (text.includes("записаться") || text.includes("прием") || text.includes("стоматолог")) {
         client.sendMessage(chatId, "Ок, я вас записал! 😊");
     } else if (text.includes("адрес")) {
@@ -18,17 +26,19 @@ client.on('message', async msg => {
     } else if (text.includes("цены") || text.includes("прайс")) {
         client.sendMessage(chatId, "Тестовые цены:\n- Консультация: 1000₽\n- Пломбирование: 3000₽\n- Удаление зуба: 5000₽");
     } else {
-        // Запрос к локальной модели через Ollama API
         try {
-            const response = await axios.post('http://localhost:11434/api/generate', {
-                model: "mistral",
-                prompt: text
+            const response = await openai.chat.completions.create({
+                model: "mistralai/Mistral-7B-Instruct", // Модель Together AI
+                messages: [
+                    { role: "system", content: "Ты - бот стоматологической клиники. Отвечай только на вопросы по стоматологии." },
+                    { role: "user", content: text }
+                ]
             });
 
-            const reply = response.data.response;
+            const reply = response.choices[0].message.content;
             client.sendMessage(chatId, reply);
         } catch (error) {
-            console.error("Ошибка запроса к локальной модели:", error);
+            console.error("Ошибка запроса к Together AI:", error);
             client.sendMessage(chatId, "Извините, произошла ошибка. Попробуйте позже.");
         }
     }
