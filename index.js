@@ -1,18 +1,19 @@
 require('dotenv').config();
-const { OpenAI } = require("openai");
-const { Client, LocalAuth } = require("whatsapp-web.js");
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const axios = require('axios'); // Используем axios для запросов к Together AI
 
-// Инициализация Together AI
-const openai = new OpenAI({
-    apiKey: process.env.TOGETHER_AI_API_KEY, // Убедись, что ключ указан в .env
-    baseURL: "https://api.together.xyz/v1"
-});
+const TOGETHER_API_KEY = process.env.TOGETHER_API_KEY;
+
+if (!TOGETHER_API_KEY) {
+    console.error("Ошибка: API-ключ Together AI не найден. Проверьте файл .env.");
+    process.exit(1);
+}
 
 const client = new Client({
     authStrategy: new LocalAuth()
 });
 
-client.on("message", async (msg) => {
+client.on('message', async msg => {
     const chatId = msg.from;
     const text = msg.body.toLowerCase();
 
@@ -26,22 +27,14 @@ client.on("message", async (msg) => {
     } else if (text.includes("цены") || text.includes("прайс")) {
         client.sendMessage(chatId, "Тестовые цены:\n- Консультация: 1000₽\n- Пломбирование: 3000₽\n- Удаление зуба: 5000₽");
     } else {
+        // Запрос к Together AI
         try {
-            const response = await openai.chat.completions.create({
-                model: "mistralai/Mistral-7B-Instruct", // Модель Together AI
-                messages: [
-                    { role: "system", content: "Ты - бот стоматологической клиники. Отвечай только на вопросы по стоматологии." },
-                    { role: "user", content: text }
-                ]
-            });
-
-            const reply = response.choices[0].message.content;
-            client.sendMessage(chatId, reply);
-        } catch (error) {
-            console.error("Ошибка запроса к Together AI:", error);
-            client.sendMessage(chatId, "Извините, произошла ошибка. Попробуйте позже.");
-        }
-    }
-});
-
-client.initialize();
+            const response = await axios.post(
+                "https://api.together.xyz/v1/chat/completions",
+                {
+                    model: "mistral-7b-instruct", // Можно изменить на другой, если нужно
+                    messages: [
+                        { role: "system", content: "Ты - бот стоматологической клиники. Отвечай только на вопросы по стоматологии." },
+                        { role: "user", content: text }
+                    ],
+                    temperature:
