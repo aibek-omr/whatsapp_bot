@@ -37,4 +37,24 @@ client.on('message', async msg => {
                         { role: "system", content: "Ты - бот стоматологической клиники. Отвечай только на вопросы по стоматологии." },
                         { role: "user", content: text }
                     ],
-                    temperature:
+                    temperature: 0.7,
+                    max_tokens: 200
+                },
+                {
+                    headers: {
+                        "Authorization": `Bearer ${TOGETHER_API_KEY}`,
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+
+            const reply = response.data.choices[0].message.content;
+            client.sendMessage(chatId, reply);
+        } catch (error) {
+            console.error("Ошибка запроса к Together AI:", error.response ? error.response.data : error.message);
+            client.sendMessage(chatId, "Извините, произошла ошибка. Попробуйте позже.");
+        }
+    }
+});
+
+client.initialize();
