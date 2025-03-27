@@ -1,17 +1,5 @@
-require('dotenv').config();
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const OpenAI = require('openai'); // Новый импорт
-
-// Проверяем наличие API-ключа
-if (!process.env.OPENAI_API_KEY) {
-    console.error("Ошибка: API-ключ OpenAI не найден. Проверьте файл .env.");
-    process.exit(1);
-}
-
-// Создаём экземпляр OpenAI
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
-});
+const axios = require('axios');
 
 const client = new Client({
     authStrategy: new LocalAuth()
@@ -21,7 +9,6 @@ client.on('message', async msg => {
     const chatId = msg.from;
     const text = msg.body.toLowerCase();
 
-    // Обработка ключевых слов по стоматологии
     if (text.includes("записаться") || text.includes("прием") || text.includes("стоматолог")) {
         client.sendMessage(chatId, "Ок, я вас записал! 😊");
     } else if (text.includes("адрес")) {
@@ -31,20 +18,17 @@ client.on('message', async msg => {
     } else if (text.includes("цены") || text.includes("прайс")) {
         client.sendMessage(chatId, "Тестовые цены:\n- Консультация: 1000₽\n- Пломбирование: 3000₽\n- Удаление зуба: 5000₽");
     } else {
-        // Ограничиваем ответы только стоматологическими темами
+        // Запрос к локальной модели через Ollama API
         try {
-            const response = await openai.chat.completions.create({
-                model: "gpt-3.5-turbo",
-                messages: [
-                    { role: "system", content: "Ты - бот стоматологической клиники. Отвечай только на вопросы по стоматологии." },
-                    { role: "user", content: text }
-                ],
+            const response = await axios.post('http://localhost:11434/api/generate', {
+                model: "mistral",
+                prompt: text
             });
 
-            const reply = response.choices[0].message.content;
+            const reply = response.data.response;
             client.sendMessage(chatId, reply);
         } catch (error) {
-            console.error("Ошибка запроса к OpenAI:", error);
+            console.error("Ошибка запроса к локальной модели:", error);
             client.sendMessage(chatId, "Извините, произошла ошибка. Попробуйте позже.");
         }
     }
